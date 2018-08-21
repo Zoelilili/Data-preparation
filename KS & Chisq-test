@@ -1,0 +1,47 @@
+/*******create quarter tag*******/
+gen app_date=app_year*100+app_month
+gen om=0
+replace om=-1 if app_date<201704
+replace om=1 if app_date>=201704 & app_date<=201706
+replace om=1 if app_date>=201707 & app_date<=201803
+replace om=1 if app_date>=201804 & app_date<=201806
+save "$process/bd_v4_quant_$dta", replace
+
+
+/*******create comparison tag*******/
+use "$process/bd_v4_quant_$dta"
+save "$process/last.dta",replace
+export delimited "$output/last.csv", replace
+clear
+
+use "$process/bd_v4_quant_$dta"
+keep if om==2|om==3
+gen sample_label=1
+save "$process/new.dta",replace
+export delimited "$output/new.csv", replace
+
+
+/**********KS-test*************/
+*1)Total Assets 
+ksmirnov total_assets, by(sample_label) exact
+*2)Subordinate Debt Growth 
+ksmirnov subdebt_growth, by(sample_label) exact 
+*3)Cash And Equivalents Growth 
+ksmirnov cash_equiv_growth, by(sample_label) exact
+*4)Pre-Crisis Fixed Effect                  
+ksmirnov precrisis, by(sample_label) exact
+
+
+/*********Chi-sq test*************/
+*5)Total Capital
+ksmirnov total_capital_score, by(sample_label) exact
+*6)Management Quality
+tabulate mgmt_quality_no sample_label, lrchi2
+*7)Risk Appetite
+tabulate risk_aptt_no sample_label, lrchi2
+*8)Liquidity Management
+tabulate liquid_mgmt_no sample_label, lrchi2
+*9)Risk Management
+tabulate rm_profile_no sample_label, lrchi2
+*10)Access to Alternative Sources of Funding
+tabulate alter_funding_no sample_label, lrchi2
